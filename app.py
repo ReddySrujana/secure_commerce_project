@@ -22,21 +22,29 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'd.srujana2024@gmail.com'
 app.config['MAIL_PASSWORD'] = 'qeul pckw vxop amhs '
 mail = Mail(app)
-
 @app.after_request
 def apply_security_headers(response):
-    # Content Security Policy (CSP) - Controls resource loading
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; object-src 'none'; style-src 'self' 'unsafe-inline';"
-    
-    # X-Frame-Options - Prevent clickjacking
+    # Remove any existing X-Frame-Options set to DENY
+    response.headers.pop('X-Frame-Options', None)
+
+    # Allow iframes from the same origin
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    
-    # MIME Type Sniffing - Prevent MIME type confusion
+
+    # Content Security Policy (CSP)
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.paypal.com https://www.paypalobjects.com; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        "img-src 'self' https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://www.paypalobjects.com; "
+        "frame-src 'self' https://www.paypal.com https://docs.google.com https://drive.google.com; "
+        "media-src 'self'; "
+        "object-src 'none'; "
+        "font-src 'self' https://cdnjs.cloudflare.com;"
+    )
+
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    
-    # Secure Cookie Flag - Ensures cookies are only sent over HTTPS
-    response.headers['Set-Cookie'] = 'Secure; HttpOnly'
-    
+    response.headers['Set-Cookie'] = 'Secure; HttpOnly; SameSite=Lax'
+
     return response
 
 # Database Models   #
@@ -218,10 +226,14 @@ def payment_cancelled():
     flash('Payment cancelled.', 'info')
     return redirect(url_for('cart'))
 
-@app.route('/pdfs/<filename>')
+@app.route('/pdfs/<path:filename>')
 def serve_pdf(filename):
-    # This serves the PDF from the templates/PDF directory
-    return send_from_directory(os.path.join(app.root_path, 'templates/PDF'), filename)
+    pdf_directory = os.path.join(app.root_path, 'static', 'PDF')
+    response = send_from_directory(pdf_directory, filename, mimetype='application/pdf')
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
+
+
 if __name__ == '__main__':
     with app.app_context():
         if not os.path.exists('bookstore.db'):
