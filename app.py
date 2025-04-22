@@ -23,6 +23,22 @@ app.config['MAIL_USERNAME'] = 'd.srujana2024@gmail.com'
 app.config['MAIL_PASSWORD'] = 'qeul pckw vxop amhs '
 mail = Mail(app)
 
+@app.after_request
+def apply_security_headers(response):
+    # Content Security Policy (CSP) - Controls resource loading
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; object-src 'none'; style-src 'self' 'unsafe-inline';"
+    
+    # X-Frame-Options - Prevent clickjacking
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    
+    # MIME Type Sniffing - Prevent MIME type confusion
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    
+    # Secure Cookie Flag - Ensures cookies are only sent over HTTPS
+    response.headers['Set-Cookie'] = 'Secure; HttpOnly'
+    
+    return response
+
 # Database Models   #
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -206,88 +222,9 @@ def payment_cancelled():
 def serve_pdf(filename):
     # This serves the PDF from the templates/PDF directory
     return send_from_directory(os.path.join(app.root_path, 'templates/PDF'), filename)
-
 if __name__ == '__main__':
     with app.app_context():
-        # If the database doesn't exist, create it and add sample books
         if not os.path.exists('bookstore.db'):
             db.create_all()
-            # Add all sample books and tutorials to the database
-            sample_books = [
-                Product(
-                    title="Introduction to Algorithms",
-                    description="A comprehensive textbook on algorithms covering a wide range of topics in computer science.",
-                    price=59.99,
-                    stock=10,
-                    pdf_file="templates/PDF/pdf1.pdf"
-                ),
-                Product(
-                    title="Clean Code: A Handbook of Agile Software Craftsmanship",
-                    description="A guide to writing clean and maintainable code by Robert C. Martin.",
-                    price=29.99,
-                    stock=15,
-                    pdf_file="templates/PDF/pdf2.pdf"
-                ),
-                Product(
-                    title="The Pragmatic Programmer",
-                    description="Offers practical advice on software development and coding practices.",
-                    price=25.50,
-                    stock=12,
-                    pdf_file="templates/PDF/pdf3.pdf"
-                ),
-                Product(
-                    title="Design Patterns: Elements of Reusable Object-Oriented Software",
-                    description="A classic work describing common design patterns in software engineering.",
-                    price=35.00,
-                    stock=8,
-                    pdf_file="templates/PDF/pdf4.pdf"
-                ),
-                Product(
-                    title="Tutorial 1: Algorithms",
-                    description="Learn the fundamentals of algorithms.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial1.pdf"
-                ),
-                Product(
-                    title="Tutorial 2: Clean Code",
-                    description="Best practices for writing clean and maintainable code.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial2.pdf"
-                ),
-                Product(
-                    title="Tutorial 3: Design Patterns",
-                    description="Understanding common design patterns in software engineering.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial3.pdf"
-                ),
-                Product(
-                    title="Tutorial 4: Data Structures",
-                    description="An introduction to common data structures.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial4.pdf"
-                ),
-                Product(
-                    title="Tutorial 5: Software Engineering",
-                    description="A guide to software engineering principles.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial5.pdf"
-                ),
-                Product(
-                    title="Tutorial 6: Database Design",
-                    description="Learn about relational databases and design patterns.",
-                    price=19.99,
-                    stock=10,
-                    pdf_file="templates/PDF/tutorial6.pdf"
-                )
-            ]
-            for book in sample_books:
-                db.session.add(book)
-            db.session.commit()
-
-    # Add the port number (5000+)
+           
     app.run(debug=True, port=5000)
